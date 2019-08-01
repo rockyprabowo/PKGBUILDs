@@ -1,0 +1,9 @@
+*/**
+!*/PKGBUILD
+!*/*.install
+!*/*.*sh
+!*/*.conf
+!*/*.protocol
+!*/*.desktop
+!*/*.patch
+!*/flutter-path

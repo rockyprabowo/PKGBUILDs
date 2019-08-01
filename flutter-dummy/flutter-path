@@ -1,0 +1,134 @@
+#!/bin/sh
+
+# $1 : path to flutter, help and set switch
+# $2 : custom file for saved path (optional)
+
+_script_name="flutter-path"
+_pkgshortdesc="Flutter"
+
+# DEFAULTS
+_default_path="/opt/flutter"
+_default_config_dir="/etc/flutter"
+_default_config_file="path"
+_default_config_path=${_default_config_dir}/${_default_config_file}
+_pkg_git_url="https://github.com/flutter/flutter.git"
+_cwd=$(pwd)
+
+# FLAGS
+_valid_dir=0
+
+# FUNCTIONS
+fail() {
+    printf "$(tput setaf 1 ; tput bold)Operation failed. Please make sure that you have a valid or sufficient permission to the target.\n$(tput sgr0)"
+    exit 1
+}
+
+err_invalid_path() {
+    printf "$(tput setaf 1 ; tput bold)Operation failed. Please make sure that you have a valid path.\n$(tput sgr0)"
+    exit 1
+}
+
+err_unknown_origin() {
+    printf "$(tput setaf 1 ; tput bold)Operation failed. Your ${_pkgshortdesc} installation is not a clone of Flutter git repository."
+    printf "Please setup Flutter properly first by cloning Flutter GitHub repo OR download and extract the package from Flutter website.$(tput sgr0)"
+    exit 1
+}
+
+show_info() {
+    printf "$(tput setaf 6)${_pkgshortdesc} path: $(tput bold)${_pkg_path:-"$(tput setaf 1)(not available)"}$(tput sgr0 ; tput setaf 6)\n$(tput sgr0)"
+    exit 0
+}
+
+plain() {
+    echo "${_pkg_path:-""}\n"
+    exit 0
+}
+
+set_mode() {
+    printf "$(tput setaf 6)Please set the path to your ${_pkgshortdesc} installation.\n$(tput sgr0)"
+    while [ "$_valid_dir" -eq 0 ]
+    do
+        read -i "${_pkg_path%/}" -ep "Path = " _pkg_path
+        validate_path
+    done;
+}
+
+validate_path() {
+    _pkg_path=$(eval echo $_pkg_path)
+    
+    if [[ -d "$_pkg_path" ]] ; then
+        cd $_pkg_path
+        _pkg_origin=$(git remote get-url origin 2> /dev/null)
+        
+        if [ "$_pkg_git_url" = "$_pkg_origin" ] ; then
+            _pkg_tag=$(git describe --tags | sed 's/v//')
+            _pkg_channel=$(git rev-parse --abbrev-ref HEAD)
+            printf "$(tput setaf 2 ; tput bold)Official release of ${_pkgshortdesc} ${_pkg_tag} (channel: ${_pkg_channel}) detected in $(tput sgr0 ; tput bold)${_pkg_path}\n$(tput sgr0)"
+            _valid_dir=1
+        elif [ -e ./bin/flutter ] && [ -e ./version ] ; then
+            _pkg_origin=$(git remote get-url origin 2> /dev/null) || err_unknown_origin
+            printf "$(tput setaf 2 ; tput bold)Origin: $(tput sgr0 ; tput bold)$_pkg_origin$(tput sgr0)"
+            printf "$(tput setaf 2 ; tput bold)Custom/forked release of ${_pkgshortdesc} $(cat ./version) (channel: ${_pkg_channel}) detected in $(tput sgr0 ; tput bold)${_pkg_path}\n$(tput sgr0)"
+            _valid_dir=1
+        else
+            printf "$(tput setaf 3)Couldn't find ${_pkgshortdesc} installation in $(tput bold)$_pkg_path$(tput sgr0)\n"
+            printf "$(tput setaf 3)Make sure that the path is correct and ${_pkgshortdesc} is already installed in that path.$(tput sgr0)\n"
+        fi
+        
+    else
+        printf "$(tput bold)$_pkg_path$(tput sgr0) doesn't exist.\n$(tput sgr0)"
+    fi
+    _pkg_path=${_pkg_path%/}
+    cd $_cwd
+}
+
+usage() {
+    printf "${_script_name}
+    Customize and setup system-wide path to your ${_pkgshortdesc} installation.
+Usage
+    ${_script_name} [ --plain | --help | --set | flutter_path] [custom_path]
+Commands and arguments
+    --help          This help.
+    --plain         Just print the current path to ${_pkgshortdesc}.
+    --set           Set the new path to ${_pkgshortdesc}.
+    flutter_path    New path to existing ${_pkgshortdesc} installation.
+    custom_path     Custom path for saving the configuration [only used during makepkg].\n"
+    exit 0;
+}
+
+# MAIN SCRIPT
+if [ -e "/etc/flutter/path" ] ; then
+    _pkg_path=$(cat /etc/flutter/path) || fail
+    _pkg_path=${_pkg_path%/}
+fi
+
+if [ -z "$1" ] ; then
+    show_info
+elif [ "$1" = "--plain" ]  ; then
+    plain
+elif [ "$1" = "--set" ]  ; then
+    set_mode
+elif [ "$1" = "--help" ] ; then
+    usage
+else
+    _pkg_path="$1"
+    validate_path
+    [ "$_valid_dir" -eq 0 ] && err_invalid_path
+fi
+
+if [ -z "$2" ] ; then
+    if [ ! -e "$_default_config_path" ] ; then
+        printf "$(tput bold)$_default_config_path$(tput sgr0) doesn't exist. Attempting to create the file\n$(tput sgr0)"
+        mkdir -p $_default_config_dir || fail
+        touch $_default_config_path || fail
+    fi
+    ( echo $_pkg_path 1>$_default_config_path ) || fail
+    
+else
+    _arg_dir=$(readlink -f "$2") || fail
+    ( echo $_pkg_path 1>$_arg_dir ) || fail
+fi
+
+printf "$(tput setaf 2 ; tput bold)${_pkgshortdesc} path is set to $(tput setaf 255)$_pkg_path\n$(tput sgr0)"
+printf "$(tput setaf 2 ; tput bold)Please run $(tput setaf 255)source /etc/profile$(tput sgr0 ; tput bold ; tput setaf 2) or relogin to include ${_pkg_path} to \$PATH.$(tput sgr0)\n"
+exit 0;

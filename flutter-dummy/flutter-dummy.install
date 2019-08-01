@@ -1,0 +1,12 @@
+post_install() {
+    printf "$(tput setaf 2)Flutter path has been configured to $(tput bold ; cat /etc/flutter/path ; tput sgr0)"
+    printf "$(tput setaf 2)You can run $(tput bold)flutter-path --set$(tput sgr0 ; tput setaf 2) if you want to move the Flutter installation path$(tput sgr0)\n"
+    printf "$(tput setaf 2)You also need to run $(tput bold)source /etc/profile$(tput sgr0 ; tput setaf 2) or relogin to add the Flutter installation to \$PATH.$(tput sgr0)\n"
+}
+post_upgrade() {
+    if [ "$1" = "$2" ] ; then
+        post_install
+        printf "$(tput setaf 2)Make sure that you run $(tput bold)flutter upgrade$(tput sgr0 ; tput setaf 2) to upgrade your local copy of Flutter$(tput sgr0)\n"
+    fi
+}
+

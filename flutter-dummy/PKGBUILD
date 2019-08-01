@@ -1,0 +1,53 @@
+# Maintainer: Rocky Prabowo <rocky.prabowo@outlook.com>
+# Deps taken from flutter, inspired by android-*-dummy
+
+_pkgname=flutter
+pkgname="${_pkgname}-dummy"
+pkgver=1.8.1.r0.gd3eee57c0
+pkgrel=1
+_pkgdesc="A new mobile app SDK to help developers and designers build modern mobile apps for iOS and Android."
+pkgdesc="${_pkgdesc}, dummy package"
+arch=("x86_64")
+url="https://${pkgname}.io"
+license=("custom" "BSD" "CCPL")
+depends=("glu" "java-environment" "lib32-libglvnd" "ncurses")
+optdepends=("android-sdk"
+    "android-studio"
+    "bash"
+    "dart"
+    "git"
+    "intellij-idea-community-edition"
+    "intellij-idea-ultimate-edition"
+    "perl"
+    "python"
+"sh")
+makedepends=("git" "python")
+provides=("${_pkgname}")
+conflicts=("${_pkgname}")
+install="${pkgname}.install"
+source=("${_pkgname}.sh"
+    "${_pkgname}.csh"
+    "${_pkgname}-path"
+)
+sha1sums=('de69260ed8d5fed4e6526604d726f815f461bdee'
+          'acdc78fff886655401e4a54055ac43827dad3d36'
+          '72c10db551edc8d5d093f62755506fd4f7dc348b')
+
+prepare() {
+    rm -f ${PKGDEST}/${pkgname}*${PKGEXT}
+    cd ${srcdir}
+    touch path
+    "./${_pkgname}-path" --set ./path
+}
+
+pkgver() {
+    cd $(cat ${srcdir}/path)
+    git describe --long --tags | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
+}
+
+package() {
+    install -Dm755 "${_pkgname}.sh" "${pkgdir}/etc/profile.d/${_pkgname}.sh"
+    install -Dm755 "${_pkgname}-path" "${pkgdir}/usr/bin/${_pkgname}-path"
+    install -Dm755 "${_pkgname}.csh" "${pkgdir}/etc/profile.d/${_pkgname}.csh"
+    install -Dm644 "path" "${pkgdir}/etc/flutter/path"
+}

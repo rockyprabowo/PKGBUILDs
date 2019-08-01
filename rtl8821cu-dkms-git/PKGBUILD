@@ -1,0 +1,32 @@
+# Maintainer: Rocky Prabowo <rocky(dot)prabowo(at)gmail(dot)com>
+
+pkgname=rtl8821cu-dkms-git
+_pkgbase=rtl8821cu
+pkgver=5.4.1_28754.20180921.r34.gc328db9
+pkgrel=1
+pkgdesc="RTL8811C/RTL8821C USB Software Package - Linux Driver "
+arch=('i686' 'x86_64')
+url="https://github.com/rockyprabowo/rtl8821CU"
+license=('GPL2')
+depends=('dkms' 'bc')
+makedepends=('git')
+conflicts=("${_pkgbase}")
+source=("git+https://github.com/rockyprabowo/rtl8821CU"
+        'dkms.conf')
+sha256sums=('SKIP'
+            '9f6f4b62fff908086de4768e6961ab82ef578e7620c908286cbbb674bec84496')
+pkgver() {
+    cd ${srcdir}/rtl8821CU
+    printf '%s.r%s.g%s' '5.4.1_28754.20180921' "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+package() {
+        cd ${srcdir}/rtl8821CU
+        mkdir -p ${pkgdir}/usr/src/${_pkgbase}-${pkgver}
+        cp -pr * ${pkgdir}/usr/src/${_pkgbase}-${pkgver}
+        cp ${srcdir}/dkms.conf ${pkgdir}/usr/src/${_pkgbase}-${pkgver}
+        # Set name and version
+        sed -e "s/@_PKGBASE@/${_pkgbase}-dkms/" \
+                        -e "s/@PKGVER@/${pkgver}/" \
+                        -i "${pkgdir}"/usr/src/${_pkgbase}-${pkgver}/dkms.conf
+}
